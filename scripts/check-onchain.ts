@@ -34,13 +34,13 @@ interface TokenEntry {
 function getClientForChain(chainId: number): PublicClient {
   switch (chainId) {
     case 1:
-      return createPublicClient({ chain: mainnet, transport: http(process.env.MAINNET_RPC || "") });
+      return createPublicClient({ chain: mainnet, transport: http(process.env.MAINNET_RPC || "") }) as PublicClient;
     case 10:
-      return createPublicClient({ chain: optimism, transport: http(process.env.OPTIMISM_RPC || "") });
+      return createPublicClient({ chain: optimism, transport: http(process.env.OPTIMISM_RPC || "") }) as PublicClient;
     case 8453:
-      return createPublicClient({ chain: base, transport: http(process.env.BASE_MAINNET_RPC || "") });
+      return createPublicClient({ chain: base, transport: http(process.env.BASE_MAINNET_RPC || "") }) as PublicClient;
     case 42161:
-      return createPublicClient({ chain: arbitrum, transport: http(process.env.ARBITRUM_RPC || "") });
+      return createPublicClient({ chain: arbitrum, transport: http(process.env.ARBITRUM_RPC || "") }) as PublicClient;
     default:
       throw new Error(`Unsupported chainId ${chainId} in check-onchain.ts`);
   }
@@ -54,8 +54,8 @@ async function checkSingle(entryPath: string) {
 
   const client = getClientForChain(chainId);
   // 1. Check if bytecode exists
-  const bytecode = await client.getBytecode({ address: address as `0x${string}` });
-  if (bytecode.length <= 2) {
+  const bytecode = await client.getCode({ address: address as `0x${string}` });
+  if (!bytecode || bytecode.length <= 2) {
     throw new Error(`No contract code found at ${address} on chain ${chainId}`);
   }
   // 2. Read name, symbol, decimals
