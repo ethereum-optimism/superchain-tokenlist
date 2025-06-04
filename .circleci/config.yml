@@ -1,0 +1,59 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@5.1.0
+  gh: circleci/github-cli@2.1.0
+
+executors:
+  node18:
+    docker:
+      - image: cimg/node:18.20
+
+jobs:
+  validate:
+    executor: node18
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+      - run: npm run validate
+      - when:
+          condition: on_fail
+          steps:
+            - gh/comment:
+                gist: |
+                  ❌ superchain-tokenlist validation failed – see logs: $CIRCLE_BUILD_URL
+
+  publish:
+    executor: node18
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+      - run: npm run build:package
+      - run:
+          name: Publish to npm
+          command: npm publish --access public
+      - run:
+          name: Push to gh-pages
+          command: ./scripts/push-gh-pages.sh
+
+workflows:
+  pr-checks:
+    jobs:
+      - validate:
+          context: superchain-ci
+          filters:
+            branches:
+              ignore: main
+
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 2 * * *"
+          filters:
+            branches:
+              only: main
+    jobs:
+      - publish:
+          context: superchain-ci 
