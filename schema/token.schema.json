@@ -1,0 +1,99 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "TokenList v3 Entry",
+    "type": "object",
+    "properties": {
+      "version": {
+        "type": "string",
+        "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+      },
+      "token": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "pattern": "^[a-z0-9\\-]{3,32}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "symbol": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{2,12}$"
+          },
+          "logoURI": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://.*\\.svg$|^ipfs://.*\\.svg$"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "website": {
+            "type": "string",
+            "format": "uri"
+          },
+          "x": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": ["assetId", "name", "symbol", "logoURI", "description", "website", "x"]
+      },
+      "deployment": {
+        "type": "object",
+        "properties": {
+          "chainId": {
+            "type": "integer"
+          },
+          "address": {
+            "type": "string",
+            "pattern": "^0x[0-9a-fA-F]{40}$"
+          },
+          "decimals": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "type": {
+            "type": "string",
+            "enum": ["OptimismMintableERC20", "SuperchainERC20", "ETH", "NativeUSDC"]
+          }
+        },
+        "required": ["chainId", "address", "decimals", "type"]
+      },
+      "bridges": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "properties": {
+            "fromChainId": { "type": "integer" },
+            "toChainId": { "type": "integer" },
+            "standardBridge": { "type": "boolean" },
+            "customBridge": {
+              "type": "string",
+              "pattern": "^0x[0-9a-fA-F]{40}$"
+            }
+          },
+          "required": ["fromChainId", "toChainId", "standardBridge"]
+        }
+      },
+      "coinGeckoId": {
+        "type": "string"
+      },
+      "docs": {
+        "type": "string",
+        "format": "uri"
+      },
+      "lastVerified": {
+        "type": "string",
+        "format": "date-time"
+      }
+    },
+    "required": ["version", "token", "deployment", "bridges", "coinGeckoId", "docs", "lastVerified"]
+  }
+  

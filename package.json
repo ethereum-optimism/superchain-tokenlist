@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "validate": "ts-node scripts/lint-schema.ts && ts-node scripts/check-onchain.ts && ts-node scripts/check-bridges.ts && ts-node scripts/check-coingecko.ts",
-    "gen:types": "json-schema-to-typescript schema/token.schema.json -o schema/token.ts",
+    "gen:types": "npx json-schema-to-typescript schema/token.schema.json -o schema/token.ts",
     "build:package": "ts-node scripts/gen-package.ts",
     "test": "jest"
   },
