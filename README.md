@@ -1,4 +1,5 @@
 # Superchain Token List v3
+**This repository is a work in progress and not ready for use.**
 
 This repository hosts the v3 tokenlist schema and registry for Superchain.  
 It provides:
