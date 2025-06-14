@@ -75,6 +75,8 @@ async function checkSingle(entryPath: string) {
   }
   // 3. Check verified on Etherscan/Blockscout
   // Map chainId → Explorer API base & API key
+  // @TODO: Use Superchain Registry for this
+  // @TODO: Use blockscout endpoints
   let apiUrl: string;
   let apiKey: string | undefined;
   if (chainId === 1) {
@@ -86,9 +88,6 @@ async function checkSingle(entryPath: string) {
   } else if (chainId === 8453) {
     apiUrl = "https://api-goerli.basescan.org/api"; // adjust if needed
     apiKey = process.env.BASE_ETHERSCAN_KEY;
-  } else if (chainId === 42161) {
-    apiUrl = "https://api.arbiscan.io/api";
-    apiKey = process.env.ARBISCAN_KEY;
   } else {
     throw new Error(`No explorer configured for chainId ${chainId}`);
   }

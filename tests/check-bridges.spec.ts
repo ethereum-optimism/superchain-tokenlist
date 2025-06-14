@@ -8,6 +8,7 @@ import { createPublicClient, http, type PublicClient } from "viem";
 import { base } from "viem/chains";
 
 // Create a temporary JSON with a bridge entry
+// @TODO: Replace with real bridge entries
 const tempBridgeJson = path.join(__dirname, "temp-bridge.json");
 const bridgeEntry = {
   version: "1.0.0",
