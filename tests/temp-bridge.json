@@ -1,0 +1,29 @@
+{
+  "version": "1.0.0",
+  "token": {
+    "assetId": "bridge-123",
+    "name": "BridgeToken",
+    "symbol": "BRDGE",
+    "logoURI": "https://example.com/logo.svg",
+    "description": "Testing bridge",
+    "website": "https://example.com",
+    "x": "https://example.com"
+  },
+  "deployment": {
+    "chainId": 8453,
+    "address": "0x0000000000000000000000000000000000000004",
+    "decimals": 18,
+    "type": "SuperchainERC20"
+  },
+  "bridges": [
+    {
+      "fromChainId": 8453,
+      "toChainId": 1,
+      "standardBridge": false,
+      "customBridge": "0x0000000000000000000000000000000000000005"
+    }
+  ],
+  "coinGeckoId": "bridge-coin",
+  "docs": "https://example.com/docs",
+  "lastVerified": "2025-06-04T00:00:00Z"
+}

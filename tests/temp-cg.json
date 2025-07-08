@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "token": {
+    "assetId": "cg-123",
+    "name": "CGToken",
+    "symbol": "CGT",
+    "logoURI": "https://example.com/logo.svg",
+    "description": "Testing CoinGecko",
+    "website": "https://example.com",
+    "x": "https://example.com"
+  },
+  "deployment": {
+    "chainId": 1,
+    "address": "0x0000000000000000000000000000000000000006",
+    "decimals": 18,
+    "type": "SuperchainERC20"
+  },
+  "bridges": [
+    {
+      "fromChainId": 1,
+      "toChainId": 10,
+      "standardBridge": true
+    }
+  ],
+  "coinGeckoId": "existing-coin",
+  "docs": "https://example.com/docs",
+  "lastVerified": "2025-06-04T00:00:00Z"
+}

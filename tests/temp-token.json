@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "token": {
+    "assetId": "abc-123",
+    "name": "MockToken",
+    "symbol": "MOCK",
+    "logoURI": "https://example.com/logo.svg",
+    "description": "Mock token for tests",
+    "website": "https://example.com",
+    "x": "https://example.com"
+  },
+  "deployment": {
+    "chainId": 1,
+    "address": "0x0000000000000000000000000000000000000003",
+    "decimals": 18,
+    "type": "SuperchainERC20"
+  },
+  "bridges": [
+    {
+      "fromChainId": 1,
+      "toChainId": 10,
+      "standardBridge": true
+    }
+  ],
+  "coinGeckoId": "mock-token",
+  "docs": "https://example.com/docs",
+  "lastVerified": "2025-06-04T00:00:00Z"
+}
