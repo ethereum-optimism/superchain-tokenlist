@@ -16,7 +16,8 @@ interface BridgeEntry {
 }
 
 interface TokenEntry {
-  deployment: { chainId: number; address: string; decimals: number; type: string };
+  deployment?: { chainId: number; address: string; decimals: number; type: string };
+  deployments?: Array<{ chainId: number; address: string; decimals: number; type: string }>;
   bridges: BridgeEntry[];
 }
 
@@ -45,10 +46,31 @@ function computeStandardBridgePredeploy(fromChain: number, toChain: number): `0x
   );
 }
 
+function getAllDeployments(entry: TokenEntry): Array<{ chainId: number; address: string; decimals: number; type: string }> {
+  if (entry.deployments) {
+    return entry.deployments;
+  } else if (entry.deployment) {
+    return [entry.deployment];
+  } else {
+    throw new Error("Token entry must have either 'deployment' or 'deployments' field");
+  }
+}
+
 async function checkSingle(filePath: string) {
   const raw = fs.readFileSync(filePath, "utf-8");
   const entry: TokenEntry = JSON.parse(raw) as any;
+  const deployments = getAllDeployments(entry);
+  
+  // Validate that bridge endpoints reference valid deployments
+  const deploymentChains = new Set(deployments.map(d => d.chainId));
+  
   for (const bridge of entry.bridges) {
+    // Verify that bridge endpoints correspond to actual deployments
+    if (!deploymentChains.has(bridge.fromChainId) && !deploymentChains.has(bridge.toChainId)) {
+      throw new Error(
+        `Bridge from chain ${bridge.fromChainId} to ${bridge.toChainId} references chains not in deployments for ${filePath}`
+      );
+    }
     const { fromChainId, toChainId, standardBridge, customBridge } = bridge;
     if (standardBridge) {
       const predeploy = computeStandardBridgePredeploy(fromChainId, toChainId);
@@ -70,6 +92,7 @@ async function checkSingle(filePath: string) {
           `Custom bridge contract missing at ${customBridge} on chain ${toChainId} for file ${filePath}`
         );
       }
+    }
     }
   }
   console.log(`✔ Bridge checks passed for ${filePath}`);

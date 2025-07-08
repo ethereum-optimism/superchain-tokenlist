@@ -10,6 +10,35 @@ executors:
       - image: cimg/node:18.20
 
 jobs:
+  generate-codeowners:
+    executor: node18
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+      - run:
+          name: Generate dynamic CODEOWNERS
+          command: npx ts-node scripts/generate-codeowners.ts
+      - run:
+          name: Check if CODEOWNERS changed
+          command: |
+            if ! git diff --quiet .github/CODEOWNERS; then
+              echo "CODEOWNERS file changed, committing updates"
+              git config user.name "CircleCI Bot"
+              git config user.email "ci@superchain.dev"
+              git add .github/CODEOWNERS
+              git commit -m "Auto-update CODEOWNERS based on token changes [skip ci]"
+              git push origin $CIRCLE_BRANCH
+            else
+              echo "CODEOWNERS file unchanged"
+            fi
+      - when:
+          condition: on_fail
+          steps:
+            - gh/comment:
+                gist: |
+                  ❌ CODEOWNERS generation failed – see logs: $CIRCLE_BUILD_URL
+
   validate:
     executor: node18
     steps:
@@ -41,8 +70,15 @@ jobs:
 workflows:
   pr-checks:
     jobs:
+      - generate-codeowners:
+          context: superchain-ci
+          filters:
+            branches:
+              ignore: main
       - validate:
           context: superchain-ci
+          requires:
+            - generate-codeowners
           filters:
             branches:
               ignore: main

@@ -5,9 +5,11 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
-export interface TokenListV3Entry {
-  version: string;
-  token: {
+export type TokenListV3Entry = {
+  [k: string]: unknown;
+} & {
+  version?: string;
+  token?: {
     assetId: string;
     name: string;
     symbol: string;
@@ -17,7 +19,7 @@ export interface TokenListV3Entry {
     x: string;
     [k: string]: unknown;
   };
-  deployment: {
+  deployment?: {
     chainId: number;
     address: string;
     decimals: number;
@@ -27,7 +29,26 @@ export interface TokenListV3Entry {
   /**
    * @minItems 1
    */
-  bridges: [
+  deployments?: [
+    {
+      chainId: number;
+      address: string;
+      decimals: number;
+      type: "OptimismMintableERC20" | "SuperchainERC20" | "ETH" | "NativeUSDC";
+      [k: string]: unknown;
+    },
+    ...{
+      chainId: number;
+      address: string;
+      decimals: number;
+      type: "OptimismMintableERC20" | "SuperchainERC20" | "ETH" | "NativeUSDC";
+      [k: string]: unknown;
+    }[]
+  ];
+  /**
+   * @minItems 1
+   */
+  bridges?: [
     {
       fromChainId: number;
       toChainId: number;
@@ -43,8 +64,8 @@ export interface TokenListV3Entry {
       [k: string]: unknown;
     }[]
   ];
-  coinGeckoId: string;
-  docs: string;
-  lastVerified: string;
+  coinGeckoId?: string;
+  docs?: string;
+  lastVerified?: string;
   [k: string]: unknown;
-}
+};

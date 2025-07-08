@@ -22,12 +22,18 @@ interface TokenEntry {
     symbol: string;
     // ...
   };
-  deployment: {
+  deployment?: {
     chainId: number;
     address: string;
     decimals: number;
     // ...
   };
+  deployments?: Array<{
+    chainId: number;
+    address: string;
+    decimals: number;
+    type: string;
+  }>;
   // ...
 }
 
@@ -46,11 +52,23 @@ function getClientForChain(chainId: number): PublicClient {
   }
 }
 
-async function checkSingle(entryPath: string) {
-  const raw = fs.readFileSync(entryPath, "utf-8");
-  const entry: TokenEntry = JSON.parse(raw) as any;
-  const { chainId, address, decimals } = entry.deployment;
-  const { name: jsonName, symbol: jsonSymbol } = entry.token;
+function getAllDeployments(entry: TokenEntry): Array<{ chainId: number; address: string; decimals: number; type: string }> {
+  if (entry.deployments) {
+    return entry.deployments;
+  } else if (entry.deployment) {
+    return [entry.deployment as any];
+  } else {
+    throw new Error("Token entry must have either 'deployment' or 'deployments' field");
+  }
+}
+
+async function checkSingleDeployment(
+  deployment: { chainId: number; address: string; decimals: number },
+  tokenInfo: { name: string; symbol: string },
+  entryPath: string
+) {
+  const { chainId, address, decimals } = deployment;
+  const { name: jsonName, symbol: jsonSymbol } = tokenInfo;
 
   const client = getClientForChain(chainId);
   // 1. Check if bytecode exists
@@ -108,6 +126,18 @@ async function checkSingle(entryPath: string) {
   }
 
   console.log(`✔ ${entryPath} @${chainId} is onchain-valid and verified.`);
+}
+
+async function checkSingle(entryPath: string) {
+  const raw = fs.readFileSync(entryPath, "utf-8");
+  const entry: TokenEntry = JSON.parse(raw) as any;
+  const deployments = getAllDeployments(entry);
+  const { name: jsonName, symbol: jsonSymbol } = entry.token;
+
+  // Check all deployments for this token
+  for (const deployment of deployments) {
+    await checkSingleDeployment(deployment, { name: jsonName, symbol: jsonSymbol }, entryPath);
+  }
 }
 
 async function main() {
