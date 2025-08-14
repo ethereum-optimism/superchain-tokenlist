@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import { createPublicClient, http, type PublicClient } from "viem";
 import { mainnet, optimism, base, arbitrum } from "viem/chains";
 import { getChainById, getSupportedChainIds, chainConfigToViemChain } from "../src/chains";
+import { TokenListV3Entry } from "../schema/token";
 
 dotenv.config();
 
@@ -19,11 +20,7 @@ interface BridgeEntry {
   customBridge?: string;
 }
 
-interface TokenEntry {
-  deployment?: { chainId: number; address: string; decimals: number; type: string };
-  deployments?: Array<{ chainId: number; address: string; decimals: number; type: string }>;
-  bridges: BridgeEntry[];
-}
+type TokenEntry = TokenListV3Entry;
 
 function getClientForChain(chainId: number): PublicClient {
   const chainConfig = getChainById(chainId);
@@ -61,6 +58,10 @@ async function checkSingle(filePath: string) {
   
   // Validate that bridge endpoints reference valid deployments
   const deploymentChains = new Set(deployments.map(d => d.chainId));
+  
+  if (!entry.bridges) {
+    throw new Error(`No bridges defined in ${filePath}`);
+  }
   
   for (const bridge of entry.bridges) {
     // Verify that bridge endpoints correspond to actual deployments
