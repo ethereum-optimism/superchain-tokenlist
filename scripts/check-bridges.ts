@@ -1,12 +1,16 @@
 import fs from "fs";
 import path from "path";
-import glob from "glob";
-import pLimit from "p-limit";
+import * as glob from "glob";
+// import pLimit from "p-limit";
 import dotenv from "dotenv";
 import { createPublicClient, http, type PublicClient } from "viem";
 import { mainnet, optimism, base, arbitrum } from "viem/chains";
+import { getChainById, getSupportedChainIds, chainConfigToViemChain } from "../src/chains";
 
 dotenv.config();
+
+//all the chains that use the standard bridge will have this address; also possible to have a bridge override with a custom bridge address
+const STANDARD_BRIDGE_ADDRESS = "0x4200000000000000000000000000000000000010";
 
 interface BridgeEntry {
   fromChainId: number;
@@ -22,28 +26,22 @@ interface TokenEntry {
 }
 
 function getClientForChain(chainId: number): PublicClient {
-  switch (chainId) {
-    case 1:
-      return createPublicClient({ chain: mainnet, transport: http(process.env.MAINNET_RPC || "") }) as PublicClient;
-    case 10:
-      return createPublicClient({ chain: optimism, transport: http(process.env.OPTIMISM_RPC || "") }) as PublicClient;
-    case 8453:
-      return createPublicClient({ chain: base, transport: http(process.env.BASE_MAINNET_RPC || "") }) as PublicClient;
-    case 42161:
-      return createPublicClient({ chain: arbitrum, transport: http(process.env.ARBITRUM_RPC || "") }) as PublicClient;
-    default:
-      throw new Error(`Unsupported chainId ${chainId} in check-bridges.ts`);
+  const chainConfig = getChainById(chainId);
+  if (!chainConfig) {
+    throw new Error(`Unsupported chainId ${chainId} in check-bridges.ts`);
   }
-}
 
-// Placeholder: compute standard bridge predeploy address for an Optimism-style chain.
-// You must replace this stub with the actual hashing logic per OP-Stack spec.
-function computeStandardBridgePredeploy(fromChain: number, toChain: number): `0x${string}` {
-  // TODO: Implement the real address derivation for standard L1<->L2 bridge predeploys.
-  // For now, throw or return a dummy.
-  throw new Error(
-    `computeStandardBridgePredeploy not implemented for fromChain=${fromChain}, toChain=${toChain}`
-  );
+
+  const supportedChainIds = getSupportedChainIds();
+  if (!supportedChainIds.includes(chainId)) {
+    throw new Error(`ChainId ${chainId} is not in the list of supported chain IDs`);
+  }
+
+  const viemChain = chainConfigToViemChain(chainConfig);
+  return createPublicClient({ 
+    chain: viemChain, 
+    transport: http(process.env.RPC_URL || chainConfig.rpcUrl) 
+  }) as PublicClient;
 }
 
 function getAllDeployments(entry: TokenEntry): Array<{ chainId: number; address: string; decimals: number; type: string }> {
@@ -73,12 +71,11 @@ async function checkSingle(filePath: string) {
     }
     const { fromChainId, toChainId, standardBridge, customBridge } = bridge;
     if (standardBridge) {
-      const predeploy = computeStandardBridgePredeploy(fromChainId, toChainId);
       const client = getClientForChain(toChainId);
-      const code = await client.getCode({ address: predeploy });
+      const code = await client.getCode({ address: STANDARD_BRIDGE_ADDRESS });
       if (!code || code.length <= 2) {
         throw new Error(
-          `Standard bridge predeploy missing at ${predeploy} on chain ${toChainId} for file ${filePath}`
+          `Standard bridge predeploy missing at ${ STANDARD_BRIDGE_ADDRESS } on chain ${toChainId} for file ${filePath}`
         );
       }
     } else {
@@ -93,17 +90,40 @@ async function checkSingle(filePath: string) {
         );
       }
     }
-    }
   }
   console.log(`✔ Bridge checks passed for ${filePath}`);
 }
 
+// Simple concurrency limiter function to replace p-limit
+async function processWithLimit<T>(items: T[], limit: number, processor: (item: T) => Promise<void>): Promise<void> {
+  const results: Promise<void>[] = [];
+  let index = 0;
+
+  const processNext = async (): Promise<void> => {
+    const currentIndex = index++;
+    if (currentIndex >= items.length) return;
+    
+    await processor(items[currentIndex]);
+    return processNext();
+  };
+
+  // Start the initial batch of workers
+  for (let i = 0; i < Math.min(limit, items.length); i++) {
+    results.push(processNext());
+  }
+
+  await Promise.all(results);
+}
+
+export async function validateBridges(tokenFilesPattern?: string): Promise<void> {
+  const pattern = tokenFilesPattern || path.join(__dirname, "../tokens/**/*.json");
+  const allFiles = glob.sync(pattern);
+  await processWithLimit(allFiles, 5, checkSingle);
+}
+
 async function main() {
-  const allFiles = glob.sync(path.join(__dirname, "../tokens/**/*.json"));
-  const limit = pLimit(5);
-  const tasks = allFiles.map((fp) => limit(() => checkSingle(fp)));
   try {
-    await Promise.all(tasks);
+    await validateBridges();
     console.log("✔ All bridge checks passed.");
     process.exit(0);
   } catch (e: any) {
@@ -112,4 +132,7 @@ async function main() {
   }
 }
 
-main(); 
+// Only run main if this file is executed directly
+if (require.main === module) {
+  main();
+} 

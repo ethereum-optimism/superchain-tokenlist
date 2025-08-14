@@ -3,13 +3,13 @@
 import fs from "fs";
 import path from "path";
 import nock from "nock";
-import { execSync } from "child_process";
+import { validateBridges } from "../scripts/check-bridges";
 import { createPublicClient, http, type PublicClient } from "viem";
 import { base } from "viem/chains";
 
 // Create a temporary JSON with a bridge entry
 // @TODO: Replace with real bridge entries
-const tempBridgeJson = path.join(__dirname, "temp-bridge.json");
+const tempBridgeJson = path.join(__dirname, "../tokens/temp-bridge.json");
 const bridgeEntry = {
   version: "1.0.0",
   token: {
@@ -50,45 +50,41 @@ describe("check-bridges script", () => {
     nock.cleanAll();
   });
 
-  it("passes when customBridge bytecode exists", () => {
+  it("passes when customBridge bytecode exists", async () => {
+    // Set environment variables for the test
+    process.env.MAINNET_RPC = "http://localhost:8545";
+    process.env.RPC_URL = "http://localhost:8545";
+    
     // Stub getBytecode for customBridge on L1 (chainId=1)
     nock("http://localhost:8545")
       .post("/")
       .reply(200, (_uri, reqBody: any) => {
-        const body = JSON.parse(reqBody);
+        const body = typeof reqBody === 'string' ? JSON.parse(reqBody) : reqBody;
         if (body.method === "eth_getCode" && body.params[0].toLowerCase() === "0x0000000000000000000000000000000000000005") {
           return { jsonrpc: "2.0", id: body.id, result: "0x6001600155" };
         }
         return { jsonrpc: "2.0", id: body.id, result: "0x" };
       });
 
-    let exitCode = 0;
-    try {
-      execSync(`ts-node scripts/check-bridges.ts`, { stdio: "ignore" });
-    } catch (e: any) {
-      exitCode = e.status;
-    }
-    expect(exitCode).toBe(0);
+    await expect(validateBridges(path.join(__dirname, "../tokens/temp-bridge.json"))).resolves.not.toThrow();
   });
 
-  it("fails when customBridge is missing code", () => {
+  it("fails when customBridge is missing code", async () => {
+    // Set environment variables for the test
+    process.env.MAINNET_RPC = "http://localhost:8545";
+    process.env.RPC_URL = "http://localhost:8545";
+    
     nock.cleanAll();
     nock("http://localhost:8545")
       .post("/")
       .reply(200, (_uri, reqBody: any) => {
-        const body = JSON.parse(reqBody);
+        const body = typeof reqBody === 'string' ? JSON.parse(reqBody) : reqBody;
         if (body.method === "eth_getCode" && body.params[0].toLowerCase() === "0x0000000000000000000000000000000000000005") {
           return { jsonrpc: "2.0", id: body.id, result: "0x" };
         }
         return { jsonrpc: "2.0", id: body.id, result: "0x" };
       });
 
-    let exitCode = 0;
-    try {
-      execSync(`ts-node scripts/check-bridges.ts`, { stdio: "ignore" });
-    } catch (e: any) {
-      exitCode = e.status;
-    }
-    expect(exitCode).not.toBe(0);
+    await expect(validateBridges(path.join(__dirname, "../tokens/temp-bridge.json"))).rejects.toThrow();
   });
 });
