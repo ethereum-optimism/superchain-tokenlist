@@ -1,11 +1,12 @@
 import fs from "fs";
 import path from "path";
-import glob from "glob";
-import pLimit from "p-limit";
+import * as glob from "glob";
+// import pLimit from "p-limit";
 import dotenv from "dotenv";
 import axios from "axios";
 import { createPublicClient, http, type PublicClient } from "viem";
-import { mainnet, optimism, base, arbitrum } from "viem/chains";
+import { getChainById, getSupportedChainIds, chainConfigToViemChain } from "../src/chains";
+import { TokenListV3Entry } from "../schema/token";
 
 // Standard ERC-20 ABI fragments needed for name, symbol, decimals:
 const ERC20_ABI = [
@@ -16,40 +17,25 @@ const ERC20_ABI = [
 
 dotenv.config();
 
-interface TokenEntry {
-  token: {
-    name: string;
-    symbol: string;
-    // ...
-  };
-  deployment?: {
-    chainId: number;
-    address: string;
-    decimals: number;
-    // ...
-  };
-  deployments?: Array<{
-    chainId: number;
-    address: string;
-    decimals: number;
-    type: string;
-  }>;
-  // ...
-}
+type TokenEntry = TokenListV3Entry;
 
+// @TODO: Pull this functionality out into a utility file
 function getClientForChain(chainId: number): PublicClient {
-  switch (chainId) {
-    case 1:
-      return createPublicClient({ chain: mainnet, transport: http(process.env.MAINNET_RPC || "") }) as PublicClient;
-    case 10:
-      return createPublicClient({ chain: optimism, transport: http(process.env.OPTIMISM_RPC || "") }) as PublicClient;
-    case 8453:
-      return createPublicClient({ chain: base, transport: http(process.env.BASE_MAINNET_RPC || "") }) as PublicClient;
-    case 42161:
-      return createPublicClient({ chain: arbitrum, transport: http(process.env.ARBITRUM_RPC || "") }) as PublicClient;
-    default:
-      throw new Error(`Unsupported chainId ${chainId} in check-onchain.ts`);
+  const chainConfig = getChainById(chainId);
+  if (!chainConfig) {
+    throw new Error(`Unsupported chainId ${chainId} in check-onchain.ts`);
   }
+
+  const supportedChainIds = getSupportedChainIds();
+  if (!supportedChainIds.includes(chainId)) {
+    throw new Error(`ChainId ${chainId} is not in the list of supported chain IDs`);
+  }
+
+  const viemChain = chainConfigToViemChain(chainConfig);
+  return createPublicClient({ 
+    chain: viemChain, 
+    transport: http(process.env.RPC_URL || chainConfig.rpcUrl) 
+  }) as PublicClient;
 }
 
 function getAllDeployments(entry: TokenEntry): Array<{ chainId: number; address: string; decimals: number; type: string }> {
@@ -132,6 +118,9 @@ async function checkSingle(entryPath: string) {
   const raw = fs.readFileSync(entryPath, "utf-8");
   const entry: TokenEntry = JSON.parse(raw) as any;
   const deployments = getAllDeployments(entry);
+  if (!entry.token) {
+    throw new Error(`No token definition in ${entryPath}`);
+  }
   const { name: jsonName, symbol: jsonSymbol } = entry.token;
 
   // Check all deployments for this token
@@ -140,12 +129,36 @@ async function checkSingle(entryPath: string) {
   }
 }
 
+// Simple concurrency limiter function to replace p-limit
+async function processWithLimit<T>(items: T[], limit: number, processor: (item: T) => Promise<void>): Promise<void> {
+  const results: Promise<void>[] = [];
+  let index = 0;
+
+  const processNext = async (): Promise<void> => {
+    const currentIndex = index++;
+    if (currentIndex >= items.length) return;
+    
+    await processor(items[currentIndex]);
+    return processNext();
+  };
+
+  // Start the initial batch of workers
+  for (let i = 0; i < Math.min(limit, items.length); i++) {
+    results.push(processNext());
+  }
+
+  await Promise.all(results);
+}
+
+export async function validateOnchain(tokenFilesPattern?: string): Promise<void> {
+  const pattern = tokenFilesPattern || path.join(__dirname, "../tokens/**/*.json");
+  const allFiles = glob.sync(pattern);
+  await processWithLimit(allFiles, 5, checkSingle);
+}
+
 async function main() {
-  const allFiles = glob.sync(path.join(__dirname, "../tokens/**/*.json"));
-  const limit = pLimit(5);
-  const tasks = allFiles.map((filePath) => limit(() => checkSingle(filePath)));
   try {
-    await Promise.all(tasks);
+    await validateOnchain();
     console.log("✔ All onchain checks passed.");
     process.exit(0);
   } catch (e: any) {
@@ -154,4 +167,7 @@ async function main() {
   }
 }
 
-main(); 
+// Only run main if this file is executed directly
+if (require.main === module) {
+  main();
+} 
