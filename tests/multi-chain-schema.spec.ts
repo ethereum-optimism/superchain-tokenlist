@@ -202,7 +202,7 @@ describe("Multi-chain token schema validation", () => {
     }
     expect(valid).toBe(false);
     expect(validate.errors).toBeDefined();
-    expect(validate.errors!.some(err => err.message?.includes("minItems"))).toBe(true);
+    expect(validate.errors!.some(err => err.message?.includes("must NOT have fewer than 1 items"))).toBe(true);
   });
 
   it("validates all supported token types in deployments", () => {
@@ -300,6 +300,6 @@ describe("Multi-chain token schema validation", () => {
     }
     expect(valid).toBe(false);
     expect(validate.errors).toBeDefined();
-    expect(validate.errors!.some(err => err.message?.includes("enum") || err.message?.includes("should be equal to one of the allowed values"))).toBe(true);
+    expect(validate.errors!.some(err => err.message?.includes("must be equal to one of the allowed values"))).toBe(true);
   });
 });
