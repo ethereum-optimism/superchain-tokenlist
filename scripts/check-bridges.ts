@@ -35,9 +35,10 @@ function getClientForChain(chainId: number): PublicClient {
   }
 
   const viemChain = chainConfigToViemChain(chainConfig);
+  const rpcUrl = process.env.RPC_URL || chainConfig.rpcUrls.default.http[0];
   return createPublicClient({ 
     chain: viemChain, 
-    transport: http(process.env.RPC_URL || chainConfig.rpcUrl) 
+    transport: http(rpcUrl) 
   }) as PublicClient;
 }
 

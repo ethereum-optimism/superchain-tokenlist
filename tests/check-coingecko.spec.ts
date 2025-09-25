@@ -3,10 +3,10 @@
 import fs from "fs";
 import path from "path";
 import nock from "nock";
-import { execSync } from "child_process";
+import { validateCoinGecko } from "../scripts/check-coingecko";
 
-// Create a dummy JSON entry
-const tempCGJson = path.join(__dirname, "temp-cg.json");
+// Create a dummy JSON entry in tokens/ directory so the script can find it
+const tempCGJson = path.join(__dirname, "../tokens/temp-cg.json");
 const cgEntry = {
   version: "1.0.0",
   token: {
@@ -43,21 +43,15 @@ describe("check-coingecko script", () => {
     nock.cleanAll();
   });
 
-  it("passes when CoinGecko ID exists", () => {
+  it("passes when CoinGecko ID exists", async () => {
     nock("https://api.coingecko.com")
       .get("/api/v3/coins/existing-coin")
       .reply(200, { id: "existing-coin", symbol: "ecg" });
 
-    let exitCode = 0;
-    try {
-      execSync(`ts-node scripts/check-coingecko.ts`, { stdio: "ignore" });
-    } catch (e: any) {
-      exitCode = e.status;
-    }
-    expect(exitCode).toBe(0);
+    await expect(validateCoinGecko(tempCGJson)).resolves.not.toThrow();
   });
 
-  it("fails when CoinGecko ID is missing", () => {
+  it("fails when CoinGecko ID is missing", async () => {
     nock.cleanAll();
     nock("https://api.coingecko.com")
       .get("/api/v3/coins/missing-coin")
@@ -67,12 +61,6 @@ describe("check-coingecko script", () => {
     const missingEntry = { ...cgEntry, coinGeckoId: "missing-coin" };
     fs.writeFileSync(tempCGJson, JSON.stringify(missingEntry, null, 2));
 
-    let exitCode = 0;
-    try {
-      execSync(`ts-node scripts/check-coingecko.ts`, { stdio: "ignore" });
-    } catch (e: any) {
-      exitCode = e.status;
-    }
-    expect(exitCode).not.toBe(0);
+    await expect(validateCoinGecko(tempCGJson)).rejects.toThrow();
   });
 });

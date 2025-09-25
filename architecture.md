@@ -140,7 +140,7 @@ Each token entry contains:
 - Ethereum ecosystem (1, 5, 11155111): `@OP-Labs/reviewers`
 - Optimism ecosystem (10, 420, 11155420): `@OP-Labs/reviewers`
 - Base ecosystem (8453, 84531, 84532): `@base-org/reviewers`
-- Fallback for unsupported chains: `@OP-Labs/reviewers`
+- Fallback for additional chains: `@OP-Labs/reviewers`
 
 ## Data Flow Architecture
 

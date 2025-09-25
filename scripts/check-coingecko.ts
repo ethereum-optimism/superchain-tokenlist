@@ -1,7 +1,6 @@
 import fs from "fs";
 import path from "path";
-import glob from "glob";
-import pLimit from "p-limit";
+import * as glob from "glob";
 import dotenv from "dotenv";
 import axios from "axios";
 
@@ -48,13 +47,37 @@ async function checkSingle(filePath: string) {
   console.log(`✔ CoinGecko ID valid for ${filePath}`);
 }
 
+// Custom concurrency limiter to replace p-limit
+async function processWithLimit<T>(items: T[], limit: number, processor: (item: T) => Promise<void>): Promise<void> {
+  const results: Promise<void>[] = [];
+  const executing: Promise<void>[] = [];
+
+  for (const item of items) {
+    const promise = processor(item).then(() => {
+      executing.splice(executing.indexOf(promise), 1);
+    });
+    results.push(promise);
+    executing.push(promise);
+
+    if (executing.length >= limit) {
+      await Promise.race(executing);
+    }
+  }
+
+  await Promise.all(results);
+}
+
+export async function validateCoinGecko(tokenFilesPattern?: string): Promise<void> {
+  const pattern = tokenFilesPattern || path.join(__dirname, "../tokens/**/*.json");
+  const allFiles = glob.sync(pattern);
+  
+  await processWithLimit(allFiles, 5, checkSingle);
+  console.log("✔ All CoinGecko checks passed.");
+}
+
 async function main() {
-  const allFiles = glob.sync(path.join(__dirname, "../tokens/**/*.json"));
-  const limit = pLimit(5);
-  const tasks = allFiles.map((fp) => limit(() => checkSingle(fp)));
   try {
-    await Promise.all(tasks);
-    console.log("✔ All CoinGecko checks passed.");
+    await validateCoinGecko();
     process.exit(0);
   } catch (e: any) {
     console.error("✖ CoinGecko validation failed:", e.message);
@@ -62,4 +85,7 @@ async function main() {
   }
 }
 
-main(); 
+// Only run main if this script is executed directly
+if (require.main === module) {
+  main();
+} 
