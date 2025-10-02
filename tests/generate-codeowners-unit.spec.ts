@@ -8,7 +8,6 @@ describe("CODEOWNERS generation logic", () => {
     1: ["@OP-Labs/reviewers"],           // Ethereum Mainnet
     10: ["@OP-Labs/reviewers"],          // Optimism Mainnet
     8453: ["@base-org/reviewers"],       // Base Mainnet
-    42161: ["@arbitrum/reviewers"],      // Arbitrum One
   };
 
   function getAllDeployments(token: any) {

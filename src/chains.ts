@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { createPublicClient, http, type Chain } from 'viem';
-import { mainnet, sepolia, optimism, optimismSepolia, base, baseSepolia, arbitrum, arbitrumSepolia } from 'viem/chains';
+import { mainnet, sepolia, optimism, optimismSepolia, base, baseSepolia } from 'viem/chains';
 
 // Registry chain entry structure (from Superchain Registry)
 export interface RegistryChainEntry {

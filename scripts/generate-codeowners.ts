@@ -23,11 +23,6 @@ const CHAIN_TEAMS: ChainTeamMapping = {
   84531: ["@base-org/reviewers"],      // Base Goerli
   84532: ["@base-org/reviewers"],      // Base Sepolia
   
-  // Arbitrum ecosystem
-  42161: ["@arbitrum/reviewers"],      // Arbitrum One
-  421613: ["@arbitrum/reviewers"],     // Arbitrum Goerli
-  421614: ["@arbitrum/reviewers"],     // Arbitrum Sepolia
-  
   // Add more chains as needed
   // Example: 137: ["@polygon/reviewers"], // Polygon
 };

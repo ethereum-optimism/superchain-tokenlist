@@ -4,7 +4,7 @@ import * as glob from "glob";
 // import pLimit from "p-limit";
 import dotenv from "dotenv";
 import { createPublicClient, http, type PublicClient } from "viem";
-import { mainnet, optimism, base, arbitrum } from "viem/chains";
+import { mainnet, optimism, base } from "viem/chains";
 import { getChainById, getSupportedChainIds, chainConfigToViemChain } from "../src/chains";
 import { TokenListV3Entry } from "../schema/token";
 
